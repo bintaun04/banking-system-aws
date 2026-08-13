@@ -1,0 +1,713 @@
+/* ============================================================
+   NOVA BANK - GLOBAL CSS
+   ============================================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    Helvetica,
+    Arial,
+    sans-serif;
+
+  background: #f4f7fb;
+  color: #172033;
+
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+  width: 100%;
+}
+
+
+/* ============================================================
+   LINKS
+   ============================================================ */
+
+a {
+  color: #1677ff;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #4096ff;
+}
+
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: #eef2f7;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c3ccd8;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #98a6b8;
+}
+
+
+/* ============================================================
+   ANT DESIGN - GLOBAL
+   ============================================================ */
+
+.ant-layout {
+  min-height: 100vh;
+}
+
+.ant-layout-content {
+  width: 100%;
+}
+
+.ant-card {
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.ant-card-hoverable:hover {
+  transform: translateY(-2px);
+}
+
+.ant-btn {
+  font-weight: 500;
+}
+
+.ant-btn-primary {
+  box-shadow: none;
+}
+
+.ant-table-wrapper {
+  width: 100%;
+}
+
+.ant-table {
+  border-radius: 12px;
+}
+
+.ant-table-thead > tr > th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ant-table-tbody > tr > td {
+  vertical-align: middle;
+}
+
+.ant-input,
+.ant-input-affix-wrapper,
+.ant-input-number,
+.ant-select-selector {
+  border-radius: 9px !important;
+}
+
+.ant-input-number {
+  width: 100%;
+}
+
+.ant-form-item-label > label {
+  font-weight: 500;
+}
+
+.ant-modal-content {
+  border-radius: 18px !important;
+}
+
+.ant-modal-header {
+  border-radius: 18px 18px 0 0 !important;
+}
+
+.ant-message {
+  z-index: 9999;
+}
+
+
+/* ============================================================
+   APP LAYOUT
+   ============================================================ */
+
+.bank-layout {
+  width: 100%;
+  min-height: 100vh;
+  background: #f4f7fb;
+}
+
+.bank-main-layout {
+  min-height: 100vh;
+  background: #f4f7fb;
+}
+
+.bank-content {
+  width: 100%;
+  min-height: calc(100vh - 70px);
+
+  padding: 28px 32px 40px;
+
+  background: #f4f7fb;
+}
+
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
+
+.bank-sidebar {
+  background: #06182e !important;
+
+  box-shadow:
+    4px 0 20px rgba(0, 0, 0, 0.08);
+
+  position: relative;
+
+  z-index: 20;
+}
+
+.bank-sidebar .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+
+  min-height: 100vh;
+}
+
+.bank-logo {
+  height: 74px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 22px;
+
+  gap: 11px;
+
+  color: white;
+
+  font-size: 19px;
+  font-weight: 800;
+
+  letter-spacing: 0.5px;
+}
+
+.bank-logo-icon {
+  width: 38px;
+  height: 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 11px;
+
+  background: linear-gradient(
+    135deg,
+    #1677ff,
+    #39a5ff
+  );
+
+  font-size: 20px;
+}
+
+.bank-sidebar .ant-menu {
+  flex: 1;
+
+  padding: 10px;
+
+  background: transparent !important;
+
+  border-inline-end: none !important;
+}
+
+.bank-sidebar .ant-menu-dark {
+  background: transparent !important;
+}
+
+.bank-sidebar .ant-menu-item {
+  height: 48px;
+
+  margin: 5px 0;
+
+  display: flex;
+  align-items: center;
+
+  border-radius: 10px;
+
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.bank-sidebar .ant-menu-item:hover {
+  color: white !important;
+
+  background:
+    rgba(255, 255, 255, 0.08) !important;
+}
+
+.bank-sidebar
+  .ant-menu-item-selected {
+  color: white !important;
+
+  background:
+    linear-gradient(
+      90deg,
+      #126ed3,
+      #1688ec
+    ) !important;
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.bank-header {
+  height: 70px;
+
+  padding: 0 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  background: #ffffff !important;
+
+  border-bottom: 1px solid #e8edf4;
+
+  position: sticky;
+
+  top: 0;
+
+  z-index: 15;
+}
+
+.bank-header-left {
+  display: flex;
+  align-items: center;
+
+  gap: 15px;
+}
+
+.bank-header-right {
+  display: flex;
+  align-items: center;
+
+  gap: 14px;
+}
+
+.bank-header-user {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  cursor: pointer;
+
+  padding: 6px 10px;
+
+  border-radius: 10px;
+
+  transition: background 0.2s ease;
+}
+
+.bank-header-user:hover {
+  background: #f3f6fa;
+}
+
+
+/* ============================================================
+   PAGE
+   ============================================================ */
+
+.bank-page {
+  width: 100%;
+}
+
+.bank-page-header {
+  margin-bottom: 24px;
+}
+
+.bank-page-title {
+  margin: 0 !important;
+
+  font-size: 28px !important;
+
+  font-weight: 700 !important;
+
+  color: #152238 !important;
+}
+
+.bank-page-description {
+  display: block;
+
+  margin-top: 5px;
+
+  color: #78869b;
+}
+
+
+/* ============================================================
+   BANK CARDS
+   ============================================================ */
+
+.bank-card {
+  border: none !important;
+
+  border-radius: 18px !important;
+
+  box-shadow:
+    0 6px 22px rgba(22, 48, 78, 0.06);
+}
+
+.bank-card:hover {
+  box-shadow:
+    0 10px 30px rgba(22, 48, 78, 0.1);
+}
+
+.balance-card {
+  position: relative;
+
+  overflow: hidden;
+
+  color: white;
+
+  border: none !important;
+
+  border-radius: 22px !important;
+
+  background:
+    linear-gradient(
+      135deg,
+      #06182e 0%,
+      #07529a 55%,
+      #1686e8 100%
+    ) !important;
+
+  box-shadow:
+    0 18px 42px
+    rgba(7, 79, 151, 0.2);
+}
+
+.balance-card::after {
+  content: "";
+
+  position: absolute;
+
+  width: 250px;
+  height: 250px;
+
+  right: -80px;
+  top: -100px;
+
+  border-radius: 50%;
+
+  background:
+    rgba(255, 255, 255, 0.07);
+}
+
+
+/* ============================================================
+   STATISTIC
+   ============================================================ */
+
+.ant-statistic-title {
+  color: #78869b !important;
+
+  font-weight: 500;
+}
+
+.ant-statistic-content {
+  font-weight: 700;
+}
+
+
+/* ============================================================
+   TRANSACTION
+   ============================================================ */
+
+.transaction-positive {
+  color: #16a34a;
+
+  font-weight: 700;
+}
+
+.transaction-negative {
+  color: #dc2626;
+
+  font-weight: 700;
+}
+
+
+/* ============================================================
+   LOGIN / REGISTER
+   ============================================================ */
+
+.auth-page {
+  width: 100vw;
+  min-height: 100vh;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #041426 0%,
+      #073a70 45%,
+      #0875d1 100%
+    );
+}
+
+.auth-card {
+  width: min(1050px, 100%);
+
+  overflow: hidden;
+
+  border: none !important;
+
+  border-radius: 26px !important;
+
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.35);
+}
+
+.auth-left {
+  min-height: 650px;
+
+  padding: 52px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  color: white;
+
+  background:
+    linear-gradient(
+      145deg,
+      #06182e 0%,
+      #074c8f 62%,
+      #0a77d5 100%
+    );
+}
+
+.auth-right {
+  min-height: 650px;
+
+  padding: 55px 50px;
+
+  display: flex;
+  align-items: center;
+
+  background: white;
+}
+
+.auth-form {
+  width: 100%;
+}
+
+.auth-form .ant-input,
+.auth-form .ant-input-affix-wrapper {
+  min-height: 48px;
+
+  border-radius: 10px !important;
+}
+
+.auth-submit {
+  height: 50px !important;
+
+  border-radius: 10px !important;
+
+  font-size: 16px;
+
+  font-weight: 600;
+}
+
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.bank-empty {
+  min-height: 250px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* ============================================================
+   FULL WIDTH
+   ============================================================ */
+
+.full-width {
+  width: 100%;
+}
+
+.full-height {
+  min-height: 100vh;
+}
+
+
+/* ============================================================
+   RESPONSIVE - TABLET
+   ============================================================ */
+
+@media (max-width: 991px) {
+
+  .bank-content {
+    padding:
+      22px 20px 35px;
+  }
+
+  .bank-header {
+    padding:
+      0 18px;
+  }
+
+  .auth-left {
+    display: none;
+  }
+
+  .auth-right {
+    min-height: auto;
+
+    padding:
+      50px 40px;
+  }
+
+  .auth-card {
+    max-width: 520px;
+  }
+
+}
+
+
+/* ============================================================
+   RESPONSIVE - MOBILE
+   ============================================================ */
+
+@media (max-width: 767px) {
+
+  .bank-content {
+    padding:
+      18px 14px 30px;
+  }
+
+  .bank-header {
+    height: 62px;
+
+    padding:
+      0 12px;
+  }
+
+  .bank-page-title {
+    font-size:
+      23px !important;
+  }
+
+  .ant-card-body {
+    padding: 18px;
+  }
+
+  .ant-table-wrapper {
+    overflow-x: auto;
+  }
+
+  .auth-page {
+    padding: 14px;
+  }
+
+  .auth-right {
+    padding:
+      38px 24px;
+  }
+
+}
+
+
+/* ============================================================
+   VERY SMALL SCREEN
+   ============================================================ */
+
+@media (max-width: 480px) {
+
+  .bank-content {
+    padding:
+      14px 10px 25px;
+  }
+
+  .auth-right {
+    padding:
+      32px 18px;
+  }
+
+  .ant-card-body {
+    padding: 15px;
+  }
+
+  .bank-page-title {
+    font-size:
+      21px !important;
+  }
+
+}
+
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+
+@media print {
+
+  .bank-sidebar,
+  .bank-header {
+    display: none !important;
+  }
+
+  .bank-content {
+    padding: 0;
+
+    background: white;
+  }
+
+}
