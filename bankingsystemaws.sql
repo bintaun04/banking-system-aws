@@ -1,5 +1,5 @@
 -- ============================================================
--- BANKING SYSTEM AWS
+-- NOVA BANKING SYSTEM AWS
 -- MySQL Database Schema
 -- ============================================================
 
@@ -24,11 +24,15 @@ CREATE TABLE users (
     email VARCHAR(100) UNIQUE,
     hashed_password VARCHAR(255) NOT NULL,
 
-    role ENUM('admin', 'user') NOT NULL DEFAULT 'user',
+    role ENUM(
+        'admin',
+        'user'
+    ) NOT NULL DEFAULT 'user',
 
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
@@ -36,7 +40,7 @@ CREATE TABLE users (
 
 -- ============================================================
 -- 2. CUSTOMERS
--- Thông tin khách hàng
+-- Hồ sơ khách hàng
 -- ============================================================
 
 CREATE TABLE customers (
@@ -50,7 +54,11 @@ CREATE TABLE customers (
 
     date_of_birth DATE NOT NULL,
 
-    gender ENUM('male', 'female', 'other'),
+    gender ENUM(
+        'male',
+        'female',
+        'other'
+    ),
 
     phone VARCHAR(20) UNIQUE,
 
@@ -63,10 +71,9 @@ CREATE TABLE customers (
 
     occupation VARCHAR(100),
 
-    monthly_income DECIMAL(15,2) DEFAULT 0,
+    monthly_income DECIMAL(19,2) NOT NULL DEFAULT 0,
 
-    bad_debt BOOLEAN NOT NULL DEFAULT FALSE
-        COMMENT 'Có nợ xấu hay không',
+    bad_debt BOOLEAN NOT NULL DEFAULT FALSE,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
@@ -100,7 +107,10 @@ CREATE TABLE branches (
 
     phone VARCHAR(20),
 
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
 
@@ -116,27 +126,22 @@ CREATE TABLE accounts (
 
     branch_id INT,
 
-    account_number VARCHAR(20) NOT NULL UNIQUE
-        COMMENT 'Số tài khoản ngân hàng',
+    account_number VARCHAR(20) NOT NULL UNIQUE,
 
     account_type ENUM(
         'checking',
         'saving'
-    ) NOT NULL DEFAULT 'checking'
-        COMMENT 'Tài khoản thanh toán / tiết kiệm',
+    ) NOT NULL DEFAULT 'checking',
 
-    currency CHAR(3) NOT NULL DEFAULT 'VND'
-        COMMENT 'VND / USD / EUR...',
+    currency CHAR(3) NOT NULL DEFAULT 'VND',
 
     balance DECIMAL(19,2) NOT NULL DEFAULT 0,
 
     available_balance DECIMAL(19,2) NOT NULL DEFAULT 0,
 
-    transaction_limit DECIMAL(19,2) DEFAULT 0
-        COMMENT 'Hạn mức giao dịch',
+    transaction_limit DECIMAL(19,2) NOT NULL DEFAULT 0,
 
-    interest_rate DECIMAL(5,2) DEFAULT 0
-        COMMENT 'Lãi suất %/năm',
+    interest_rate DECIMAL(7,4) NOT NULL DEFAULT 0,
 
     opened_at DATE NOT NULL,
 
@@ -172,14 +177,14 @@ CREATE TABLE accounts (
     CONSTRAINT chk_transaction_limit
         CHECK (transaction_limit >= 0),
 
-    CONSTRAINT chk_interest_rate
+    CONSTRAINT chk_account_interest
         CHECK (interest_rate >= 0)
 ) ENGINE=InnoDB;
 
 
 -- ============================================================
 -- 5. TRANSACTIONS
--- Giao dịch ngân hàng
+-- Giao dịch tài khoản
 -- ============================================================
 
 CREATE TABLE transactions (
@@ -198,7 +203,9 @@ CREATE TABLE transactions (
     transaction_type ENUM(
         'deposit',
         'withdraw',
-        'transfer'
+        'transfer',
+        'loan_disbursement',
+        'loan_repayment'
     ) NOT NULL,
 
     status ENUM(
@@ -240,12 +247,14 @@ CREATE TABLE loans (
 
     customer_id INT NOT NULL,
 
+    disbursement_account_id INT,
+
     loan_amount DECIMAL(19,2) NOT NULL,
 
-    interest_rate DECIMAL(5,2) NOT NULL,
+    interest_rate DECIMAL(7,4) NOT NULL,
 
     loan_term INT NOT NULL
-        COMMENT 'Thời hạn vay tính theo tháng',
+        COMMENT 'Thời hạn vay theo tháng',
 
     purpose VARCHAR(255),
 
@@ -273,6 +282,12 @@ CREATE TABLE loans (
         ON DELETE RESTRICT
         ON UPDATE CASCADE,
 
+    CONSTRAINT fk_loans_disbursement_account
+        FOREIGN KEY (disbursement_account_id)
+        REFERENCES accounts(id)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE,
+
     CONSTRAINT chk_loan_amount
         CHECK (loan_amount > 0),
 
@@ -286,7 +301,7 @@ CREATE TABLE loans (
 
 -- ============================================================
 -- 7. LOAN PAYMENTS
--- Lịch sử thanh toán khoản vay
+-- Lịch sử trả nợ khoản vay
 -- ============================================================
 
 CREATE TABLE loan_payments (
@@ -294,13 +309,16 @@ CREATE TABLE loan_payments (
 
     loan_id INT NOT NULL,
 
+    payment_account_id INT,
+
     due_date DATE NOT NULL,
 
     payment_date DATE,
 
     amount_due DECIMAL(19,2) NOT NULL,
 
-    amount_paid DECIMAL(19,2) DEFAULT 0,
+    amount_paid DECIMAL(19,2) NOT NULL DEFAULT 0
+        COMMENT 'Trong phiên bản hiện tại dùng như phần gốc đã trả',
 
     days_late INT NOT NULL DEFAULT 0,
 
@@ -317,6 +335,12 @@ CREATE TABLE loan_payments (
         FOREIGN KEY (loan_id)
         REFERENCES loans(id)
         ON DELETE CASCADE
+        ON UPDATE CASCADE,
+
+    CONSTRAINT fk_loan_payments_account
+        FOREIGN KEY (payment_account_id)
+        REFERENCES accounts(id)
+        ON DELETE SET NULL
         ON UPDATE CASCADE,
 
     CONSTRAINT chk_amount_due
@@ -344,7 +368,7 @@ CREATE TABLE credit_profiles (
 
     debt_ratio DECIMAL(7,4),
 
-    total_debt DECIMAL(19,2) DEFAULT 0,
+    total_debt DECIMAL(19,2) NOT NULL DEFAULT 0,
 
     credit_history_length INT
         COMMENT 'Số tháng lịch sử tín dụng',
@@ -433,7 +457,7 @@ CREATE TABLE predictions (
 
 -- ============================================================
 -- 10. AUDIT LOGS
--- Theo dõi hoạt động hệ thống
+-- Nhật ký hoạt động
 -- ============================================================
 
 CREATE TABLE audit_logs (
@@ -462,14 +486,22 @@ CREATE TABLE audit_logs (
 
 
 -- ============================================================
--- INDEX
+-- INDEXES
 -- ============================================================
+
+CREATE INDEX idx_users_role
+    ON users(role);
+
 
 CREATE INDEX idx_customers_phone
     ON customers(phone);
 
 CREATE INDEX idx_customers_national_id
     ON customers(national_id);
+
+CREATE INDEX idx_customers_bad_debt
+    ON customers(bad_debt);
+
 
 CREATE INDEX idx_accounts_customer
     ON accounts(customer_id);
@@ -479,6 +511,10 @@ CREATE INDEX idx_accounts_branch
 
 CREATE INDEX idx_accounts_status
     ON accounts(status);
+
+CREATE INDEX idx_accounts_currency
+    ON accounts(currency);
+
 
 CREATE INDEX idx_transactions_from_account
     ON transactions(from_account_id);
@@ -492,33 +528,80 @@ CREATE INDEX idx_transactions_created_at
 CREATE INDEX idx_transactions_type
     ON transactions(transaction_type);
 
+CREATE INDEX idx_transactions_status
+    ON transactions(status);
+
+
 CREATE INDEX idx_loans_customer
     ON loans(customer_id);
+
+CREATE INDEX idx_loans_disbursement_account
+    ON loans(disbursement_account_id);
 
 CREATE INDEX idx_loans_status
     ON loans(loan_status);
 
+CREATE INDEX idx_loans_created_at
+    ON loans(created_at);
+
+
 CREATE INDEX idx_loan_payments_loan
     ON loan_payments(loan_id);
+
+CREATE INDEX idx_loan_payments_account
+    ON loan_payments(payment_account_id);
 
 CREATE INDEX idx_loan_payments_status
     ON loan_payments(payment_status);
 
+CREATE INDEX idx_loan_payments_created_at
+    ON loan_payments(created_at);
+
+
+CREATE INDEX idx_credit_profiles_score
+    ON credit_profiles(credit_score);
+
+
 CREATE INDEX idx_predictions_customer
     ON predictions(customer_id);
+
+CREATE INDEX idx_predictions_risk_level
+    ON predictions(risk_level);
 
 CREATE INDEX idx_predictions_created_at
     ON predictions(created_at);
 
+
 CREATE INDEX idx_audit_logs_user
     ON audit_logs(user_id);
+
+CREATE INDEX idx_audit_logs_action
+    ON audit_logs(action);
 
 CREATE INDEX idx_audit_logs_created_at
     ON audit_logs(created_at);
 
 
 -- ============================================================
--- KIỂM TRA DATABASE
+-- DEFAULT BRANCH
+-- ============================================================
+
+INSERT INTO branches (
+    branch_code,
+    branch_name,
+    address,
+    phone
+)
+VALUES (
+    'HN001',
+    'NOVA Bank - Chi nhánh Hà Nội',
+    'Hà Nội',
+    '0240000000'
+);
+
+
+-- ============================================================
+-- CHECK DATABASE
 -- ============================================================
 
 SHOW TABLES;

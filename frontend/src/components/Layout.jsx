@@ -155,7 +155,7 @@ export default function AppLayout({
 
   const userItems = [
     {
-      key: "/",
+      key: "/dashboard",
       icon: <DashboardOutlined />,
       label: "Trang chủ",
     },

@@ -1,84 +1,318 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    status,
+)
+
 from sqlalchemy.orm import Session
-from typing import List
 
 from app.database import get_db
-from app.models import CreditProfile, Customer, User
-from app.schemas import CreditProfileCreate, CreditProfileUpdate, CreditProfileOut
-from app.dependencies import get_current_user, get_current_admin
 
-router = APIRouter(prefix="/credits", tags=["Credit Profiles"])
+from app.models import (
+    CreditProfile,
+    Customer,
+    User,
+    UserRole,
+)
 
-@router.post("/", response_model=CreditProfileOut, status_code=status.HTTP_201_CREATED)
+from app.schemas import (
+    CreditProfileCreate,
+    CreditProfileUpdate,
+    CreditProfileOut,
+)
+
+from app.dependencies import (
+    get_current_user,
+    get_current_admin,
+)
+
+from app.audit import create_audit_log
+
+
+router = APIRouter(
+    prefix="/credits",
+    tags=["Credit Profiles"],
+)
+
+
+# ============================================================
+# CREATE - ADMIN ONLY
+# ============================================================
+
+@router.post(
+    "/",
+    response_model=CreditProfileOut,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_credit_profile(
     credit_in: CreditProfileCreate,
+
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+
+    current_admin: User = Depends(
+        get_current_admin
+    ),
 ):
-    customer = db.query(Customer).filter(Customer.id == credit_in.customer_id).first()
-    if not customer:
-        raise HTTPException(status_code=404, detail="Customer not found")
-
-    # Kiểm tra đã có profile chưa
-    existing = db.query(CreditProfile).filter(CreditProfile.customer_id == credit_in.customer_id).first()
-    if existing:
-        raise HTTPException(status_code=400, detail="Credit profile already exists")
-
-    if current_user.role != "admin" and customer.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
-
-    db_credit = CreditProfile(
-        customer_id=credit_in.customer_id,
-        credit_score=credit_in.credit_score,
-        debt_ratio=credit_in.debt_ratio,
-        total_debt=credit_in.total_debt,
-        credit_history_length=credit_in.credit_history_length,
-        previous_default=credit_in.previous_default,
-        late_payment_count=credit_in.late_payment_count,
-        total_loans=credit_in.total_loans
+    customer = (
+        db.query(Customer)
+        .filter(
+            Customer.id
+            == credit_in.customer_id
+        )
+        .first()
     )
-    db.add(db_credit)
-    db.commit()
-    db.refresh(db_credit)
-    return db_credit
 
-@router.get("/{customer_id}", response_model=CreditProfileOut)
+
+    if not customer:
+        raise HTTPException(
+            status_code=404,
+            detail="Customer not found",
+        )
+
+
+    existing = (
+        db.query(CreditProfile)
+        .filter(
+            CreditProfile.customer_id
+            == credit_in.customer_id
+        )
+        .first()
+    )
+
+
+    if existing:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Credit profile "
+                "already exists"
+            ),
+        )
+
+
+    credit = CreditProfile(
+        customer_id=
+            credit_in.customer_id,
+
+        credit_score=
+            credit_in.credit_score,
+
+        debt_ratio=
+            credit_in.debt_ratio,
+
+        total_debt=
+            credit_in.total_debt,
+
+        credit_history_length=
+            credit_in.credit_history_length,
+
+        previous_default=
+            credit_in.previous_default,
+
+        late_payment_count=
+            credit_in.late_payment_count,
+
+        total_loans=
+            credit_in.total_loans,
+    )
+
+
+    try:
+        db.add(credit)
+
+        db.flush()
+
+
+        create_audit_log(
+            db=db,
+
+            user_id=
+                current_admin.id,
+
+            action=
+                "CREATE_CREDIT_PROFILE",
+
+            resource=
+                "credit_profiles",
+
+            resource_id=
+                credit.id,
+
+            description=(
+                f"Created credit profile "
+                f"for customer "
+                f"{credit.customer_id}"
+            ),
+        )
+
+
+        db.commit()
+
+        db.refresh(credit)
+
+        return credit
+
+    except Exception:
+        db.rollback()
+        raise
+
+
+# ============================================================
+# GET
+# Customer xem của mình
+# Admin xem bất kỳ customer nào
+# ============================================================
+
+@router.get(
+    "/{customer_id}",
+    response_model=CreditProfileOut,
+)
 def get_credit_profile(
     customer_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    credit = db.query(CreditProfile).filter(CreditProfile.customer_id == customer_id).first()
-    if not credit:
-        raise HTTPException(status_code=404, detail="Credit profile not found")
 
-    if current_user.role != "admin":
-        customer = db.query(Customer).filter(Customer.id == customer_id).first()
-        if not customer or customer.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Not enough permissions")
+    db: Session = Depends(get_db),
+
+    current_user: User = Depends(
+        get_current_user
+    ),
+):
+    credit = (
+        db.query(CreditProfile)
+        .filter(
+            CreditProfile.customer_id
+            == customer_id
+        )
+        .first()
+    )
+
+
+    if not credit:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Credit profile "
+                "not found"
+            ),
+        )
+
+
+    if (
+        current_user.role
+        != UserRole.admin
+    ):
+        customer = (
+            db.query(Customer)
+            .filter(
+                Customer.id
+                == customer_id
+            )
+            .first()
+        )
+
+
+        if (
+            not customer
+            or customer.user_id
+            != current_user.id
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail=
+                    "Not enough permissions",
+            )
+
 
     return credit
 
-@router.put("/{customer_id}", response_model=CreditProfileOut)
+
+# ============================================================
+# UPDATE - ADMIN ONLY
+# ============================================================
+
+@router.put(
+    "/{customer_id}",
+    response_model=CreditProfileOut,
+)
 def update_credit_profile(
     customer_id: int,
-    credit_in: CreditProfileUpdate,
+
+    credit_in:
+        CreditProfileUpdate,
+
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+
+    current_admin: User = Depends(
+        get_current_admin
+    ),
 ):
-    credit = db.query(CreditProfile).filter(CreditProfile.customer_id == customer_id).first()
+    credit = (
+        db.query(CreditProfile)
+        .filter(
+            CreditProfile.customer_id
+            == customer_id
+        )
+        .first()
+    )
+
+
     if not credit:
-        raise HTTPException(status_code=404, detail="Credit profile not found")
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                "Credit profile "
+                "not found"
+            ),
+        )
 
-    if current_user.role != "admin":
-        customer = db.query(Customer).filter(Customer.id == customer_id).first()
-        if not customer or customer.user_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Not enough permissions")
 
-    update_data = credit_in.model_dump(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(credit, field, value)
+    update_data = (
+        credit_in.model_dump(
+            exclude_unset=True
+        )
+    )
 
-    db.commit()
-    db.refresh(credit)
-    return credit
+
+    for field, value in (
+        update_data.items()
+    ):
+        setattr(
+            credit,
+            field,
+            value,
+        )
+
+
+    try:
+        create_audit_log(
+            db=db,
+
+            user_id=
+                current_admin.id,
+
+            action=
+                "UPDATE_CREDIT_PROFILE",
+
+            resource=
+                "credit_profiles",
+
+            resource_id=
+                credit.id,
+
+            description=(
+                f"Updated customer "
+                f"{customer_id} "
+                f"credit profile"
+            ),
+        )
+
+
+        db.commit()
+
+        db.refresh(credit)
+
+        return credit
+
+    except Exception:
+        db.rollback()
+        raise

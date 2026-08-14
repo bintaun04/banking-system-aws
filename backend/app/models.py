@@ -147,20 +147,30 @@ class Loan(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     loan_code = Column(String(30), unique=True, nullable=False)
+
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
+
+    disbursement_account_id = Column(Integer, ForeignKey("accounts.id"), nullable=True)
+
     loan_amount = Column(DECIMAL(19, 2), nullable=False)
     interest_rate = Column(DECIMAL(5, 2), nullable=False)
     loan_term = Column(Integer, nullable=False)
+
     purpose = Column(String(255), nullable=True)
+
     start_date = Column(Date, nullable=True)
     end_date = Column(Date, nullable=True)
+
     loan_status = Column(Enum(LoanStatus), default=LoanStatus.pending, nullable=False)
+
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
     customer = relationship("Customer", back_populates="loans")
+
     payments = relationship("LoanPayment", back_populates="loan")
 
+    disbursement_account = relationship("Account", foreign_keys=[disbursement_account_id])
 class LoanPayment(Base):
     __tablename__ = "loan_payments"
 

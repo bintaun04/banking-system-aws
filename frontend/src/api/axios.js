@@ -7,26 +7,64 @@ const api = axios.create({
   },
 });
 
-// Tự động gắn token vào mọi request
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
 
-// Xử lý lỗi 401 (hết hạn token)
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      window.location.href = "/login";
+// ============================================================
+// REQUEST INTERCEPTOR
+// Tự động gắn JWT vào tất cả request
+// ============================================================
+
+api.interceptors.request.use(
+  (config) => {
+    const token =
+      localStorage.getItem("access_token");
+
+    if (token) {
+      config.headers.Authorization =
+        `Bearer ${token}`;
     }
+
+    return config;
+  },
+
+  (error) => {
     return Promise.reject(error);
   }
 );
+
+
+// ============================================================
+// RESPONSE INTERCEPTOR
+// ============================================================
+
+api.interceptors.response.use(
+  (response) => response,
+
+  (error) => {
+    if (
+      error.response?.status === 401
+    ) {
+      localStorage.removeItem(
+        "access_token"
+      );
+
+      localStorage.removeItem(
+        "user"
+      );
+
+      // Không redirect khi chính request login bị 401
+      if (
+        !error.config?.url?.includes(
+          "/auth/login"
+        )
+      ) {
+        window.location.href =
+          "/login";
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 
 export default api;

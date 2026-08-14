@@ -11,22 +11,36 @@ import {
   Spin,
 } from "antd";
 
-// ==================== AUTH ====================
+
+// AUTH
 
 import {
   AuthProvider,
   useAuth,
 } from "./auth/AuthContext";
 
-// ==================== COMPONENTS ====================
+
+// CUSTOMER COMPONENTS
 
 import PrivateRoute from "./components/PrivateRoute";
 import AppLayout from "./components/Layout";
 
-// ==================== PAGES ====================
 
+// ADMIN COMPONENTS
+
+import AdminRoute from "./components/AdminRoute";
+import AdminLayout from "./components/AdminLayout";
+
+
+// PUBLIC PAGES
+
+import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+
+
+// CUSTOMER PAGES
+
 import Dashboard from "./pages/Dashboard";
 import Accounts from "./pages/Accounts";
 import Transactions from "./pages/Transactions";
@@ -34,14 +48,23 @@ import Loans from "./pages/Loans";
 import Profile from "./pages/Profile";
 
 
+// ADMIN PAGES
+
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminCustomers from "./pages/admin/AdminCustomers";
+import AdminLoans from "./pages/admin/AdminLoans";
+
 // ============================================================
 // PUBLIC ROUTE
-// Nếu đã đăng nhập thì không cho quay lại Login/Register
 // ============================================================
 
-function PublicRoute({ children }) {
+function PublicRoute({
+  children,
+}) {
   const {
     token,
+    user,
     loading,
   } = useAuth();
 
@@ -51,30 +74,72 @@ function PublicRoute({ children }) {
         style={{
           width: "100vw",
           height: "100vh",
+
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
-          background: "#f4f7fb",
+          justifyContent:
+            "center",
+
+          background:
+            "#f4f7fb",
         }}
       >
-        <Spin
-          size="large"
-          tip="Đang tải..."
-        />
+        <Spin size="large" />
       </div>
     );
   }
-
   if (token) {
+    if (user?.role === "admin") {
+      return (
+        <Navigate
+          to="/admin/dashboard"
+          replace
+        />
+      );
+    }
+
     return (
       <Navigate
-        to="/"
+        to="/dashboard"
         replace
       />
     );
   }
-
   return children;
+}
+
+
+// ============================================================
+// ADMIN PAGE WRAPPER
+// ============================================================
+
+function AdminPage({
+  children,
+}) {
+  return (
+    <AdminRoute>
+      <AdminLayout>
+        {children}
+      </AdminLayout>
+    </AdminRoute>
+  );
+}
+
+
+// ============================================================
+// CUSTOMER PAGE WRAPPER
+// ============================================================
+
+function CustomerPage({
+  children,
+}) {
+  return (
+    <PrivateRoute>
+      <AppLayout>
+        {children}
+      </AppLayout>
+    </PrivateRoute>
+  );
 }
 
 
@@ -86,9 +151,12 @@ function AppRoutes() {
   return (
     <Routes>
 
-      {/* ======================================================
-          PUBLIC ROUTES
-      ====================================================== */}
+      {/* PUBLIC */}
+
+      <Route
+        path="/"
+        element={<Landing />}
+      />
 
       <Route
         path="/login"
@@ -109,89 +177,174 @@ function AppRoutes() {
       />
 
 
-      {/* ======================================================
-          DASHBOARD
-      ====================================================== */}
+      {/* CUSTOMER */}
 
       <Route
-        path="/"
+        path="/dashboard"
         element={
-          <PrivateRoute>
-            <AppLayout>
-              <Dashboard />
-            </AppLayout>
-          </PrivateRoute>
+          <CustomerPage>
+            <Dashboard />
+          </CustomerPage>
         }
       />
-
-
-      {/* ======================================================
-          ACCOUNTS
-      ====================================================== */}
 
       <Route
         path="/accounts"
         element={
-          <PrivateRoute>
-            <AppLayout>
-              <Accounts />
-            </AppLayout>
-          </PrivateRoute>
+          <CustomerPage>
+            <Accounts />
+          </CustomerPage>
         }
       />
-
-
-      {/* ======================================================
-          TRANSACTIONS
-      ====================================================== */}
 
       <Route
         path="/transactions"
         element={
-          <PrivateRoute>
-            <AppLayout>
-              <Transactions />
-            </AppLayout>
-          </PrivateRoute>
+          <CustomerPage>
+            <Transactions />
+          </CustomerPage>
         }
       />
-
-
-      {/* ======================================================
-          LOANS
-      ====================================================== */}
 
       <Route
         path="/loans"
         element={
-          <PrivateRoute>
-            <AppLayout>
-              <Loans />
-            </AppLayout>
-          </PrivateRoute>
+          <CustomerPage>
+            <Loans />
+          </CustomerPage>
         }
       />
-
-
-      {/* ======================================================
-          PROFILE / KYC
-      ====================================================== */}
 
       <Route
         path="/profile"
         element={
-          <PrivateRoute>
-            <AppLayout>
-              <Profile />
-            </AppLayout>
-          </PrivateRoute>
+          <CustomerPage>
+            <Profile />
+          </CustomerPage>
         }
       />
 
 
-      {/* ======================================================
-          404
-      ====================================================== */}
+      {/* ADMIN LOGIN */}
+
+      <Route
+        path="/admin/login"
+        element={
+          <AdminLogin />
+        }
+      />
+
+
+      {/* ADMIN DASHBOARD */}
+
+      <Route
+        path="/admin"
+        element={
+          <Navigate
+            to="/admin/dashboard"
+            replace
+          />
+        }
+      />
+
+      <Route
+        path="/admin/dashboard"
+        element={
+          <AdminPage>
+            <AdminDashboard />
+          </AdminPage>
+        }
+      />
+
+
+      {/* ADMIN CUSTOMERS */}
+
+      <Route
+        path="/admin/customers"
+        element={
+          <AdminPage>
+            <AdminCustomers />
+          </AdminPage>
+        }
+      />
+
+
+      {/* ADMIN ROUTES
+          Các trang này mình sẽ viết tiếp.
+      */}
+
+      <Route
+        path="/admin/accounts"
+        element={
+          <Navigate
+            to="/admin/dashboard"
+            replace
+          />
+        }
+      />
+
+      <Route
+        path="/admin/transactions"
+        element={
+          <Navigate
+            to="/admin/dashboard"
+            replace
+          />
+        }
+      />
+
+      <Route
+        path="/admin/loans"
+        element={
+          <AdminPage>
+            <AdminLoans />
+          </AdminPage>
+        }
+
+      />
+
+      <Route
+        path="/admin/credits"
+        element={
+          <Navigate
+            to="/admin/dashboard"
+            replace
+          />
+        }
+      />
+
+      <Route
+        path="/admin/predictions"
+        element={
+          <Navigate
+            to="/admin/dashboard"
+            replace
+          />
+        }
+      />
+
+      <Route
+        path="/admin/branches"
+        element={
+          <Navigate
+            to="/admin/dashboard"
+            replace
+          />
+        }
+      />
+
+      <Route
+        path="/admin/audit-logs"
+        element={
+          <Navigate
+            to="/admin/dashboard"
+            replace
+          />
+        }
+      />
+
+
+      {/* 404 */}
 
       <Route
         path="*"
@@ -217,18 +370,22 @@ export default function App() {
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: "#1677ff",
+          colorPrimary:
+            "#1677ff",
 
           borderRadius: 10,
 
           fontFamily:
             "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
 
-          colorBgLayout: "#f4f7fb",
+          colorBgLayout:
+            "#f4f7fb",
 
-          colorText: "#172033",
+          colorText:
+            "#172033",
 
-          colorTextSecondary: "#78869b",
+          colorTextSecondary:
+            "#78869b",
         },
 
         components: {
@@ -262,7 +419,8 @@ export default function App() {
           },
 
           Table: {
-            headerBg: "#f7f9fc",
+            headerBg:
+              "#f7f9fc",
           },
         },
       }}

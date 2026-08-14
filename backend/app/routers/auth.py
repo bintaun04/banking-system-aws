@@ -8,7 +8,12 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db, settings
 from app.models import User, Customer, UserRole
-from app.schemas import RegisterRequest, UserOut, Token
+from app.schemas import (
+    RegisterRequest,
+    UserOut,
+    Token,
+    AdminCreate,
+)
 from app.auth import (
     get_password_hash,
     verify_password,
@@ -16,9 +21,11 @@ from app.auth import (
 )
 from app.dependencies import get_current_user
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-
+router = APIRouter(
+    prefix="/auth",
+    tags=["Authentication"],
+)
 def generate_customer_code(db: Session) -> str:
     while True:
         code = "CUS" + "".join(random.choices(string.digits, k=8))
@@ -166,3 +173,67 @@ def me(
     current_user: User = Depends(get_current_user),
 ):
     return current_user
+# ============================================================
+# CREATE ADMIN
+# Chỉ dùng để khởi tạo admin trong môi trường development
+# ============================================================
+
+@router.post(
+    "/create-admin",
+    response_model=UserOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_admin(
+    admin_in: AdminCreate,
+    db: Session = Depends(get_db),
+):
+    # Kiểm tra username
+    existing_username = (
+        db.query(User)
+        .filter(User.username == admin_in.username)
+        .first()
+    )
+
+    if existing_username:
+        raise HTTPException(
+            status_code=400,
+            detail="Username already registered",
+        )
+
+    # Kiểm tra email
+    existing_email = (
+        db.query(User)
+        .filter(User.email == admin_in.email)
+        .first()
+    )
+
+    if existing_email:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered",
+        )
+
+    # Hash password
+    hashed_password = get_password_hash(
+        admin_in.password
+    )
+
+    # Tạo ADMIN
+    admin = User(
+        username=admin_in.username,
+        email=admin_in.email,
+        hashed_password=hashed_password,
+        role=UserRole.admin,
+        is_active=True,
+    )
+
+    try:
+        db.add(admin)
+        db.commit()
+        db.refresh(admin)
+
+        return admin
+
+    except Exception:
+        db.rollback()
+        raise

@@ -353,82 +353,41 @@ class TransactionOut(BaseModel):
 
 class LoanCreate(BaseModel):
     customer_id: int
-
-    loan_amount: Decimal = Field(
-        ...,
-        gt=0
-    )
-
-    interest_rate: Decimal = Field(
-        ...,
-        ge=0
-    )
-
-    loan_term: int = Field(
-        ...,
-        gt=0
-    )
-
-    purpose: Optional[str] = Field(
-        default=None,
-        max_length=255
-    )
-
-    start_date: Optional[date] = None
-
-    end_date: Optional[date] = None
+    disbursement_account_id: int
+    loan_amount: Decimal = Field(..., gt=0)
+    interest_rate: Decimal = Field(..., ge=0)
+    loan_term: int = Field(..., gt=0)
+    purpose: Optional[str] = None
 
 
 class LoanUpdate(BaseModel):
-    interest_rate: Optional[Decimal] = Field(
-        default=None,
-        ge=0
-    )
-
-    loan_term: Optional[int] = Field(
-        default=None,
-        gt=0
-    )
-
-    purpose: Optional[str] = Field(
-        default=None,
-        max_length=255
-    )
-
-    start_date: Optional[date] = None
-
-    end_date: Optional[date] = None
-
     loan_status: Optional[LoanStatus] = None
+    interest_rate: Optional[Decimal] = Field(None, ge=0)
+    loan_term: Optional[int] = Field(None, gt=0)
+    purpose: Optional[str] = None
 
 
 class LoanOut(BaseModel):
     id: int
-
     loan_code: str
-
     customer_id: int
-
+    disbursement_account_id: Optional[int] = None
     loan_amount: Decimal
-
     interest_rate: Decimal
-
     loan_term: int
-
-    purpose: Optional[str]
-
-    start_date: Optional[date]
-
-    end_date: Optional[date]
-
+    purpose: Optional[str] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
     loan_status: LoanStatus
-
     created_at: datetime
 
-    updated_at: datetime
+    class Config:
+        from_attributes = True
 
-    model_config = ConfigDict(from_attributes=True)
 
+class LoanRepaymentCreate(BaseModel):
+    account_id: int
+    amount: Decimal = Field(..., gt=0)
 
 # ============================================================
 # LOAN PAYMENT
@@ -663,3 +622,12 @@ class AuditLogOut(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+# ============================================================
+# ADMIN CREATE
+# ============================================================
+
+class AdminCreate(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    email: EmailStr
+    password: str = Field(..., min_length=6)

@@ -52,29 +52,43 @@ export default function Login() {
   // ============================================================
 
   const onFinish = async (values) => {
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      await login(
-        values.username,
-        values.password
+  try {
+    const loggedUser = await login(
+      values.username,
+      values.password
+    );
+
+    message.success(
+      "Đăng nhập thành công"
+    );
+
+    if (loggedUser?.role === "admin") {
+      navigate(
+        "/admin/dashboard",
+        {
+          replace: true,
+        }
       );
-
-      message.success(
-        "Đăng nhập thành công"
+    } else {
+      navigate(
+        "/dashboard",
+        {
+          replace: true,
+        }
       );
-
-      navigate("/");
-
-    } catch (error) {
-      message.error(
-        error.response?.data?.detail ||
-          "Tên đăng nhập hoặc mật khẩu không đúng"
-      );
-    } finally {
-      setLoading(false);
     }
-  };
+
+  } catch (error) {
+    message.error(
+      error.response?.data?.detail ||
+        "Tên đăng nhập hoặc mật khẩu không đúng"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
 
   // ============================================================

@@ -1,43 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
-import {
-  Alert,
-  Avatar,
-  Button,
-  Card,
-  Col,
-  Empty,
-  Row,
-  Skeleton,
-  Space,
-  Statistic,
-  Table,
-  Tag,
-  Typography,
-  message,
-} from "antd";
-
-import {
-  ArrowDownOutlined,
-  ArrowRightOutlined,
-  ArrowUpOutlined,
-  BankOutlined,
-  CreditCardOutlined,
-  DollarOutlined,
-  HistoryOutlined,
-  SwapOutlined,
-  UserOutlined,
-  WalletOutlined,
-} from "@ant-design/icons";
-
+import { useEffect, useState } from "react";
+import { Alert, Avatar, Button, Card, Col, Empty, Row, Skeleton, Space, Statistic, Table, Tag, Typography, message } from "antd";
+import { ArrowDownOutlined, ArrowRightOutlined, ArrowUpOutlined, CreditCardOutlined, DollarOutlined, HistoryOutlined, SwapOutlined, WarningOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
 
 const { Title, Text } = Typography;
 
-
-// ============================================================
-// HELPERS
-// ============================================================
 
 const formatMoney = (value, currency = "VND") => {
   const amount = Number(value || 0);
@@ -46,21 +14,7 @@ const formatMoney = (value, currency = "VND") => {
     return `${amount.toLocaleString("vi-VN")} ₫`;
   }
 
-  return `${amount.toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })} ${currency}`;
-};
-
-
-const maskAccountNumber = (number) => {
-  if (!number) return "-";
-
-  if (number.length <= 4) {
-    return number;
-  }
-
-  return `•••• •••• ${number.slice(-4)}`;
+  return `${amount.toLocaleString("en-US")} ${currency}`;
 };
 
 
@@ -78,75 +32,29 @@ const transactionTypeIcon = {
 };
 
 
-// ============================================================
-// DASHBOARD
-// ============================================================
-
 export default function Dashboard() {
   const navigate = useNavigate();
 
-  const [customer, setCustomer] = useState(null);
-  const [accounts, setAccounts] = useState([]);
-  const [transactions, setTransactions] = useState([]);
-  const [loans, setLoans] = useState([]);
+  const [data, setData] = useState(null);
 
   const [loading, setLoading] = useState(true);
 
-
-  // ============================================================
-  // FETCH DATA
-  // ============================================================
 
   const fetchDashboard = async () => {
     setLoading(true);
 
     try {
-      const [
-        customerResult,
-        accountResult,
-        transactionResult,
-        loanResult,
-      ] = await Promise.allSettled([
-        api.get("/customers/me"),
-        api.get("/accounts/"),
-        api.get("/transactions/?limit=10"),
-        api.get("/loans/"),
-      ]);
+      const response = await api.get(
+        "/dashboard/me"
+      );
 
-
-      // Customer
-      if (customerResult.status === "fulfilled") {
-        setCustomer(customerResult.value.data);
-      } else {
-        setCustomer(null);
-      }
-
-
-      // Accounts
-      if (accountResult.status === "fulfilled") {
-        setAccounts(accountResult.value.data || []);
-      } else {
-        setAccounts([]);
-      }
-
-
-      // Transactions
-      if (transactionResult.status === "fulfilled") {
-        setTransactions(transactionResult.value.data || []);
-      } else {
-        setTransactions([]);
-      }
-
-
-      // Loans
-      if (loanResult.status === "fulfilled") {
-        setLoans(loanResult.value.data || []);
-      } else {
-        setLoans([]);
-      }
+      setData(response.data);
 
     } catch (error) {
-      message.error("Không thể tải Dashboard");
+      message.error(
+        error.response?.data?.detail ||
+          "Không thể tải Dashboard"
+      );
     } finally {
       setLoading(false);
     }
@@ -158,141 +66,147 @@ export default function Dashboard() {
   }, []);
 
 
-  // ============================================================
-  // CALCULATIONS
-  // ============================================================
-
-  const totalBalance = useMemo(() => {
-    return accounts
-      .filter((account) => account.currency === "VND")
-      .reduce(
-        (total, account) =>
-          total + Number(account.available_balance || 0),
-        0
-      );
-  }, [accounts]);
-
-
-  const activeLoans = useMemo(() => {
-    return loans.filter((loan) =>
-      ["approved", "active", "overdue"].includes(
-        loan.loan_status
-      )
+  if (loading) {
+    return (
+      <Skeleton
+        active
+        paragraph={{
+          rows: 12,
+        }}
+      />
     );
-  }, [loans]);
+  }
 
 
-  // ============================================================
-  // TRANSACTION TABLE
-  // ============================================================
+  const customer = data?.customer;
+
+  const summary =
+    data?.financial_summary || {};
+
+  const accounts =
+    data?.accounts || [];
+
+  const transactions =
+    data?.recent_transactions || [];
+
+  const loans =
+    data?.loans || [];
+
 
   const transactionColumns = [
     {
       title: "Giao dịch",
+
       key: "transaction",
+
       render: (_, record) => (
         <Space>
           <Avatar
             icon={
-              transactionTypeIcon[record.transaction_type] ||
-              <HistoryOutlined />
+              transactionTypeIcon[
+                record.transaction_type
+              ] || <HistoryOutlined />
             }
           />
 
           <div>
-            <div style={{ fontWeight: 600 }}>
-              {transactionTypeText[record.transaction_type] ||
-                record.transaction_type}
-            </div>
-
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {record.description || record.transaction_code}
+            <Text strong>
+              {
+                transactionTypeText[
+                  record.transaction_type
+                ] ||
+                record.transaction_type
+              }
             </Text>
+
+            <div>
+              <Text
+                type="secondary"
+                style={{
+                  fontSize: 12,
+                }}
+              >
+                {
+                  record.description ||
+                  record.transaction_code
+                }
+              </Text>
+            </div>
           </div>
         </Space>
       ),
     },
 
     {
-      title: "Thời gian",
-      dataIndex: "created_at",
-      render: (value) =>
-        value
-          ? new Date(value).toLocaleString("vi-VN")
-          : "-",
-    },
-
-    {
       title: "Số tiền",
-      key: "amount",
-      align: "right",
-      render: (_, record) => {
-        const isDeposit =
-          record.transaction_type === "deposit";
 
-        return (
-          <Text
-            strong
-            style={{
-              color: isDeposit ? "#16a34a" : "#dc2626",
-            }}
-          >
-            {isDeposit ? "+" : "-"}
-            {formatMoney(record.amount, record.currency)}
-          </Text>
-        );
-      },
+      key: "amount",
+
+      align: "right",
+
+      render: (_, record) => (
+        <Text strong>
+          {formatMoney(
+            record.amount,
+            record.currency
+          )}
+        </Text>
+      ),
     },
 
     {
       title: "Trạng thái",
-      dataIndex: "status",
-      align: "center",
-      render: (value) => {
-        const color =
-          value === "success"
-            ? "green"
-            : value === "pending"
-            ? "orange"
-            : "red";
 
-        return (
-          <Tag color={color}>
-            {String(value).toUpperCase()}
-          </Tag>
-        );
-      },
+      dataIndex: "status",
+
+      render: (value) => (
+        <Tag
+          color={
+            value === "success"
+              ? "green"
+              : value === "pending"
+              ? "orange"
+              : "red"
+          }
+        >
+          {value}
+        </Tag>
+      ),
+    },
+
+    {
+      title: "Thời gian",
+
+      dataIndex: "created_at",
+
+      render: (value) =>
+        value
+          ? new Date(
+              value
+            ).toLocaleString(
+              "vi-VN"
+            )
+          : "-",
     },
   ];
 
 
-  // ============================================================
-  // LOADING
-  // ============================================================
-
-  if (loading) {
-    return (
-      <div style={{ width: "100%" }}>
-        <Skeleton active paragraph={{ rows: 10 }} />
-      </div>
-    );
-  }
-
-
-  // ============================================================
-  // UI
-  // ============================================================
-
   return (
-    <div style={{ width: "100%" }}>
+    <div
+      style={{
+        width: "100%",
+      }}
+    >
 
-      {/* ======================================================
-          WELCOME
-      ====================================================== */}
+      {/* HEADER */}
 
-      <div style={{ marginBottom: 28 }}>
+      <div
+        style={{
+          marginBottom: 26,
+        }}
+      >
         <Text type="secondary">
-          Ngân hàng số NOVA
+          NOVA Digital Banking
         </Text>
 
         <Title
@@ -303,239 +217,337 @@ export default function Dashboard() {
           }}
         >
           Xin chào,{" "}
-          {customer?.full_name || "Quý khách"} 👋
+          {
+            customer?.full_name ||
+            "Quý khách"
+          }
         </Title>
 
         <Text type="secondary">
-          Chúc bạn một ngày giao dịch thuận lợi.
+          Tổng quan tài chính của bạn.
         </Text>
       </div>
 
 
-      {/* ======================================================
-          CHƯA CÓ CUSTOMER
-      ====================================================== */}
+      {/* NO KYC */}
 
-      {!customer && (
+      {!data?.profile_complete && (
         <Alert
           type="warning"
           showIcon
-          style={{ marginBottom: 24 }}
           message="Bạn chưa hoàn thiện hồ sơ khách hàng"
           description={
-            <div>
-              Hãy hoàn thiện thông tin KYC để sử dụng đầy đủ
-              chức năng ngân hàng.
-
-              <div style={{ marginTop: 12 }}>
-                <Button
-                  type="primary"
-                  onClick={() => navigate("/profile")}
-                >
-                  Hoàn thiện hồ sơ
-                </Button>
-              </div>
-            </div>
+            <Button
+              type="primary"
+              style={{
+                marginTop: 12,
+              }}
+              onClick={() =>
+                navigate("/profile")
+              }
+            >
+              Hoàn thiện hồ sơ
+            </Button>
           }
+          style={{
+            marginBottom: 22,
+          }}
         />
       )}
 
 
-      {/* ======================================================
-          BALANCE + INFO
-      ====================================================== */}
+      {/* BALANCE */}
 
-      <Row gutter={[20, 20]}>
+      <Row gutter={[18, 18]}>
 
-        <Col xs={24} lg={15}>
+        <Col
+          xs={24}
+          xl={12}
+        >
           <Card
             bordered={false}
             style={{
               height: "100%",
+
+              color: "#fff",
+
               borderRadius: 22,
-              color: "white",
+
               background:
-                "linear-gradient(135deg, #071a30 0%, #064b92 55%, #1686e8 100%)",
-              boxShadow:
-                "0 16px 38px rgba(9, 79, 145, 0.20)",
+                "linear-gradient(135deg,#071a30,#07539d,#1686e8)",
             }}
           >
             <Text
               style={{
-                color: "rgba(255,255,255,.75)",
+                color:
+                  "rgba(255,255,255,.72)",
               }}
             >
-              Tổng số dư khả dụng
+              Tổng số dư
             </Text>
 
             <Title
               level={1}
               style={{
-                color: "white",
+                color: "#fff",
+
                 marginTop: 8,
-                marginBottom: 28,
+
+                marginBottom: 10,
               }}
             >
-              {formatMoney(totalBalance)}
+              {formatMoney(
+                summary.total_balance
+              )}
             </Title>
 
-
-            <Row gutter={[16, 16]}>
-
-              <Col xs={12}>
-                <Text
-                  style={{
-                    color: "rgba(255,255,255,.7)",
-                  }}
-                >
-                  Số tài khoản
-                </Text>
-
-                <div
-                  style={{
-                    fontSize: 24,
-                    fontWeight: 700,
-                    marginTop: 4,
-                  }}
-                >
-                  {accounts.length}
-                </div>
-              </Col>
-
-
-              <Col xs={12}>
-                <Text
-                  style={{
-                    color: "rgba(255,255,255,.7)",
-                  }}
-                >
-                  Khoản vay
-                </Text>
-
-                <div
-                  style={{
-                    fontSize: 24,
-                    fontWeight: 700,
-                    marginTop: 4,
-                  }}
-                >
-                  {activeLoans.length}
-                </div>
-              </Col>
-
-            </Row>
+            <Text
+              style={{
+                color:
+                  "rgba(255,255,255,.72)",
+              }}
+            >
+              Số dư khả dụng:{" "}
+              {formatMoney(
+                summary.available_balance
+              )}
+            </Text>
           </Card>
         </Col>
 
 
-        <Col xs={24} lg={9}>
+        <Col
+          xs={24}
+          md={12}
+          xl={6}
+        >
           <Card
-            bordered={false}
             style={{
               height: "100%",
-              borderRadius: 22,
             }}
           >
-            <Space
-              direction="vertical"
-              size={18}
-              style={{ width: "100%" }}
-            >
-              <div>
-                <Text type="secondary">
-                  Mã khách hàng
-                </Text>
+            <Statistic
+              title="Dư nợ gốc"
 
-                <div
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 700,
-                  }}
-                >
-                  {customer?.customer_code || "-"}
-                </div>
-              </div>
+              value={
+                Number(
+                  summary.total_outstanding_principal ||
+                    0
+                )
+              }
 
+              formatter={(value) =>
+                Number(
+                  value
+                ).toLocaleString(
+                  "vi-VN"
+                )
+              }
 
-              <div>
-                <Text type="secondary">
-                  Họ và tên
-                </Text>
+              suffix="₫"
 
-                <div
-                  style={{
-                    fontSize: 18,
-                    fontWeight: 700,
-                  }}
-                >
-                  {customer?.full_name || "-"}
-                </div>
-              </div>
+              prefix={
+                <DollarOutlined />
+              }
+            />
+
+            <Text type="secondary">
+              Khoản vay đã giải ngân
+            </Text>
+          </Card>
+        </Col>
 
 
-              <div>
-                <Text type="secondary">
-                  Trạng thái tín dụng
-                </Text>
+        <Col
+          xs={24}
+          md={12}
+          xl={6}
+        >
+          <Card
+            style={{
+              height: "100%",
+            }}
+          >
+            <Statistic
+              title="Dư nợ quá hạn"
 
-                <div style={{ marginTop: 5 }}>
-                  {customer ? (
-                    customer.bad_debt ? (
-                      <Tag color="red">CÓ NỢ XẤU</Tag>
-                    ) : (
-                      <Tag color="green">
-                        BÌNH THƯỜNG
-                      </Tag>
-                    )
-                  ) : (
-                    "-"
-                  )}
-                </div>
-              </div>
-            </Space>
+              value={
+                Number(
+                  summary.overdue_outstanding_principal ||
+                    0
+                )
+              }
+
+              formatter={(value) =>
+                Number(
+                  value
+                ).toLocaleString(
+                  "vi-VN"
+                )
+              }
+
+              suffix="₫"
+
+              prefix={
+                <WarningOutlined />
+              }
+
+              valueStyle={{
+                color:
+                  Number(
+                    summary.overdue_outstanding_principal ||
+                      0
+                  ) > 0
+                    ? "#dc2626"
+                    : undefined,
+              }}
+            />
+
+            <Text type="secondary">
+              Phần dư nợ đang quá hạn
+            </Text>
           </Card>
         </Col>
 
       </Row>
 
 
-      {/* ======================================================
-          QUICK ACTION
-      ====================================================== */}
+      {/* LOAN SUMMARY */}
+
+      <Row
+        gutter={[18, 18]}
+        style={{
+          marginTop: 18,
+        }}
+      >
+
+        <Col
+          xs={24}
+          md={8}
+        >
+          <Card>
+            <Statistic
+              title="Tổng giá trị đề nghị vay"
+
+              value={
+                Number(
+                  summary.total_requested_loan_amount ||
+                    0
+                )
+              }
+
+              formatter={(value) =>
+                Number(
+                  value
+                ).toLocaleString(
+                  "vi-VN"
+                )
+              }
+
+              suffix="₫"
+            />
+          </Card>
+        </Col>
+
+
+        <Col
+          xs={24}
+          md={8}
+        >
+          <Card>
+            <Statistic
+              title="Đang chờ duyệt"
+
+              value={
+                Number(
+                  summary.pending_loan_amount ||
+                    0
+                )
+              }
+
+              formatter={(value) =>
+                Number(
+                  value
+                ).toLocaleString(
+                  "vi-VN"
+                )
+              }
+
+              suffix="₫"
+            />
+          </Card>
+        </Col>
+
+
+        <Col
+          xs={24}
+          md={8}
+        >
+          <Card>
+            <Statistic
+              title="Đã duyệt - chưa giải ngân"
+
+              value={
+                Number(
+                  summary.approved_not_disbursed_amount ||
+                    0
+                )
+              }
+
+              formatter={(value) =>
+                Number(
+                  value
+                ).toLocaleString(
+                  "vi-VN"
+                )
+              }
+
+              suffix="₫"
+            />
+          </Card>
+        </Col>
+
+      </Row>
+
+
+      {/* QUICK ACTION */}
 
       <Title
         level={4}
         style={{
-          marginTop: 30,
-          marginBottom: 16,
+          marginTop: 28,
         }}
       >
         Giao dịch nhanh
       </Title>
 
-      <Row gutter={[16, 16]}>
+      <Row gutter={[14, 14]}>
 
-        <Col xs={12} sm={12} md={6}>
+        <Col
+          xs={12}
+          md={6}
+        >
           <Card
             hoverable
             onClick={() =>
-              navigate("/transactions?tab=transfer")
+              navigate(
+                "/transactions?tab=transfer"
+              )
             }
             style={{
               textAlign: "center",
-              borderRadius: 16,
             }}
           >
             <SwapOutlined
               style={{
-                fontSize: 28,
+                fontSize: 26,
                 color: "#1677ff",
               }}
             />
 
             <div
               style={{
-                marginTop: 10,
+                marginTop: 8,
                 fontWeight: 600,
               }}
             >
@@ -545,27 +557,31 @@ export default function Dashboard() {
         </Col>
 
 
-        <Col xs={12} sm={12} md={6}>
+        <Col
+          xs={12}
+          md={6}
+        >
           <Card
             hoverable
             onClick={() =>
-              navigate("/transactions?tab=deposit")
+              navigate(
+                "/transactions?tab=deposit"
+              )
             }
             style={{
               textAlign: "center",
-              borderRadius: 16,
             }}
           >
             <ArrowDownOutlined
               style={{
-                fontSize: 28,
+                fontSize: 26,
                 color: "#16a34a",
               }}
             />
 
             <div
               style={{
-                marginTop: 10,
+                marginTop: 8,
                 fontWeight: 600,
               }}
             >
@@ -575,55 +591,29 @@ export default function Dashboard() {
         </Col>
 
 
-        <Col xs={12} sm={12} md={6}>
+        <Col
+          xs={12}
+          md={6}
+        >
           <Card
             hoverable
             onClick={() =>
-              navigate("/transactions?tab=withdraw")
+              navigate("/loans")
             }
             style={{
               textAlign: "center",
-              borderRadius: 16,
-            }}
-          >
-            <ArrowUpOutlined
-              style={{
-                fontSize: 28,
-                color: "#dc2626",
-              }}
-            />
-
-            <div
-              style={{
-                marginTop: 10,
-                fontWeight: 600,
-              }}
-            >
-              Rút tiền
-            </div>
-          </Card>
-        </Col>
-
-
-        <Col xs={12} sm={12} md={6}>
-          <Card
-            hoverable
-            onClick={() => navigate("/loans")}
-            style={{
-              textAlign: "center",
-              borderRadius: 16,
             }}
           >
             <DollarOutlined
               style={{
-                fontSize: 28,
+                fontSize: 26,
                 color: "#7c3aed",
               }}
             />
 
             <div
               style={{
-                marginTop: 10,
+                marginTop: 8,
                 fontWeight: 600,
               }}
             >
@@ -632,165 +622,94 @@ export default function Dashboard() {
           </Card>
         </Col>
 
+
+        <Col
+          xs={12}
+          md={6}
+        >
+          <Card
+            hoverable
+            onClick={() =>
+              navigate("/loans")
+            }
+            style={{
+              textAlign: "center",
+            }}
+          >
+            <CreditCardOutlined
+              style={{
+                fontSize: 26,
+                color: "#ea8a14",
+              }}
+            />
+
+            <div
+              style={{
+                marginTop: 8,
+                fontWeight: 600,
+              }}
+            >
+              Trả nợ
+            </div>
+          </Card>
+        </Col>
+
       </Row>
 
 
-      {/* ======================================================
-          ACCOUNTS
-      ====================================================== */}
+      {/* TRANSACTIONS */}
 
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginTop: 32,
-          marginBottom: 16,
+
+          justifyContent:
+            "space-between",
+
+          marginTop: 30,
+
+          marginBottom: 14,
         }}
       >
-        <Title level={4} style={{ margin: 0 }}>
-          Tài khoản của tôi
-        </Title>
-
-        <Button
-          type="link"
-          onClick={() => navigate("/accounts")}
+        <Title
+          level={4}
+          style={{
+            margin: 0,
+          }}
         >
-          Xem tất cả <ArrowRightOutlined />
-        </Button>
-      </div>
-
-
-      {accounts.length === 0 ? (
-        <Card style={{ borderRadius: 16 }}>
-          <Empty description="Chưa có tài khoản ngân hàng" />
-        </Card>
-      ) : (
-        <Row gutter={[16, 16]}>
-          {accounts.slice(0, 3).map((account) => (
-            <Col
-              xs={24}
-              md={12}
-              xl={8}
-              key={account.id}
-            >
-              <Card
-                hoverable
-                bordered={false}
-                style={{
-                  borderRadius: 18,
-                  boxShadow:
-                    "0 8px 24px rgba(0,0,0,.06)",
-                }}
-              >
-                <Space
-                  align="start"
-                  style={{
-                    width: "100%",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <div>
-                    <Text type="secondary">
-                      {account.account_type === "saving"
-                        ? "Tài khoản tiết kiệm"
-                        : "Tài khoản thanh toán"}
-                    </Text>
-
-                    <Title
-                      level={4}
-                      style={{
-                        marginTop: 5,
-                        marginBottom: 4,
-                      }}
-                    >
-                      {maskAccountNumber(
-                        account.account_number
-                      )}
-                    </Title>
-
-                    <Tag
-                      color={
-                        account.status === "active"
-                          ? "green"
-                          : "orange"
-                      }
-                    >
-                      {String(
-                        account.status
-                      ).toUpperCase()}
-                    </Tag>
-                  </div>
-
-                  <Avatar
-                    size={44}
-                    icon={<CreditCardOutlined />}
-                  />
-                </Space>
-
-
-                <div style={{ marginTop: 24 }}>
-                  <Text type="secondary">
-                    Số dư khả dụng
-                  </Text>
-
-                  <div
-                    style={{
-                      marginTop: 4,
-                      fontWeight: 700,
-                      fontSize: 22,
-                    }}
-                  >
-                    {formatMoney(
-                      account.available_balance,
-                      account.currency
-                    )}
-                  </div>
-                </div>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      )}
-
-
-      {/* ======================================================
-          RECENT TRANSACTIONS
-      ====================================================== */}
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginTop: 32,
-          marginBottom: 16,
-        }}
-      >
-        <Title level={4} style={{ margin: 0 }}>
           Giao dịch gần đây
         </Title>
 
         <Button
           type="link"
-          onClick={() => navigate("/transactions")}
+          onClick={() =>
+            navigate("/transactions")
+          }
         >
-          Xem lịch sử <ArrowRightOutlined />
+          Xem tất cả{" "}
+          <ArrowRightOutlined />
         </Button>
       </div>
 
 
-      <Card
-        bordered={false}
-        style={{
-          borderRadius: 18,
-        }}
-      >
+      <Card>
         <Table
-          columns={transactionColumns}
-          dataSource={transactions.slice(0, 8)}
           rowKey="id"
+
+          columns={
+            transactionColumns
+          }
+
+          dataSource={
+            transactions
+          }
+
           pagination={false}
-          scroll={{ x: 760 }}
+
+          scroll={{
+            x: 750,
+          }}
+
           locale={{
             emptyText: (
               <Empty description="Chưa có giao dịch" />
